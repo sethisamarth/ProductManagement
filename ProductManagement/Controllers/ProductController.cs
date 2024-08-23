@@ -11,11 +11,42 @@ namespace ProductManagement.Controllers
         { 
             _db = db;
         }
-        public IActionResult Index()
+       
+        public IActionResult Index(string searchTitle, DateTime? startDate, DateTime? endDate, int pageNumber = 1, int pageSize = 10)
         {
-            var products = _db.Products.ToList();
-            return View(products);
+            var products = _db.Products.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchTitle))
+            {
+                products = products.Where(p => p.Title.Contains(searchTitle));
+            }
+
+            if (startDate.HasValue)
+            {
+                products = products.Where(p => p.Date >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                products = products.Where(p => p.Date <= endDate.Value);
+            }
+
+            var paginatedProducts = products
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var totalProducts = products.Count();
+
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalProducts / pageSize);
+            ViewBag.CurrentPage = pageNumber;
+            ViewBag.SearchTitle = searchTitle;
+            ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+            ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+
+            return View(paginatedProducts);
         }
+
         public IActionResult Create()
         {
             return View();
